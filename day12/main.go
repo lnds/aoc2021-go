@@ -100,10 +100,3 @@ func traverse(s Cave, cm map[Cave][]Cave, smallCaveMaxVisit int, paths *int, vis
 		(*visited)[s]--
 	}
 }
-
-func foldY(paper Paper, pos int) Paper {
-	newPaper := make(Paper, pos)
-	for y := range newPaper {
-		newPaper[y] = make([]bool, len(paper[0]))
-	}
-}
