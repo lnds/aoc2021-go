@@ -1,6 +1,7 @@
 package main
 
 import (
+	"container/heap"
 	"fmt"
 	"math"
 	"os"
@@ -81,50 +82,94 @@ func minimalPath(cavern Matrix) int {
 }
 
 func dijkstra(graph *Graph, source, target Point, cavern Matrix) int {
-	Q := map[Point]bool{}
 
 	dist := map[Point]int{}
-	prev := map[Point]*Point{}
-	for v, _ := range graph.adjacency {
+	for v := range graph.adjacency {
 		dist[v] = math.MaxInt
-		prev[v] = nil
-		Q[v] = true
 	}
 	dist[source] = 0
 
-	for len(Q) > 0 {
-		du := math.MaxInt
-		var u Point
-		for v := range Q {
-			if dist[v] < du {
-				du = dist[v]
-				u = v
-			}
-		}
-		delete(Q, u)
-		if u == target {
-			break
-		}
+	Q := newPriorityQueue()
+	Q.addWithPriority(source, dist[source])
 
+	for !Q.empty() {
+		u := Q.extractMin()
 		neighbors := graph.adjacency[u]
 		for _, v := range neighbors {
-			if _, ok := Q[v]; ok {
-				alt := dist[u] + length(u, v, cavern)
-				if alt < dist[v] {
-					dist[v] = alt
-					prev[v] = &u
-				}
+			alt := dist[u] + length(u, v, cavern)
+			if alt < dist[v] {
+				dist[v] = alt
+				Q.addWithPriority(v, alt)
 			}
 		}
 	}
 	return dist[target]
 }
 
-func length(u, v Point, cavern Matrix) int {
-	if u.i+1 == v.i || u.j+1 == v.j {
-		return cavern.get(v.i, v.j)
+type Item struct {
+	point    Point
+	priority int
+}
+
+type PriorityQueue struct {
+	items []Item
+}
+
+func newPriorityQueue() *PriorityQueue {
+	result := &PriorityQueue{
+		items: make([]Item, 0),
 	}
-	return 0
+	heap.Init(result)
+	return result
+}
+
+func (pq *PriorityQueue) addWithPriority(p Point, priority int) {
+	for _, itm := range pq.items {
+		if itm.point == p {
+			return
+		}
+	}
+	item := Item{p, priority}
+	heap.Push(pq, item)
+}
+
+func (pq *PriorityQueue) empty() bool {
+	return pq.Len() == 0
+}
+
+func (pq *PriorityQueue) extractMin() Point {
+	item := heap.Pop(pq).(Item)
+	return item.point
+}
+
+func (pq *PriorityQueue) Push(x interface{}) {
+	item := x.(Item)
+	pq.items = append(pq.items, item)
+}
+
+func (pq *PriorityQueue) Pop() interface{} {
+	old := pq.items
+	n := len(old)
+	item := old[n-1]
+	pq.items = old[0 : n-1]
+	return item
+}
+
+func (pq *PriorityQueue) Len() int {
+	return len(pq.items)
+}
+
+func (pq *PriorityQueue) Less(i, j int) bool {
+	return pq.items[i].priority < pq.items[j].priority
+}
+
+func (pq *PriorityQueue) Swap(i, j int) {
+	pq.items[i], pq.items[j] = pq.items[j], pq.items[i]
+
+}
+
+func length(u, v Point, cavern Matrix) int {
+	return cavern.get(v.i, v.j)
 }
 
 type Point struct {
